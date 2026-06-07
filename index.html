@@ -54,6 +54,7 @@
         }
         .btn-primary { background: var(--primary); box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3); }
         .btn-cosmic { background: var(--cosmic); box-shadow: 0 4px 15px rgba(175, 82, 222, 0.3); }
+        .btn-push { background: #333; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .btn:active { opacity: 0.8; }
 
         .status-banner {
@@ -86,6 +87,7 @@
 
         <button class="btn btn-primary" id="startBtn" onclick="startCoreSystem()">⚡ 1. KÍCH HOẠT HỆ THỐNG iCAR</button>
         <button class="btn btn-cosmic" id="aiLearnBtn" onclick="triggerAILearning()">🧠 2. AI TỰ HỌC GÓC ĐẶT TAPLO</button>
+        <button class="btn btn-push" id="pushBtn" onclick="requestPushPermission()">🔔 3. KÍCH HOẠT THÔNG BÁO PUSH</button>
 
         <div class="status-banner" id="statusBanner">HỆ THỐNG ĐANG QUÉT...</div>
 
@@ -125,6 +127,23 @@
     <audio id="bgAudio" loop playsinline></audio>
 
     <script>
+        // --- CÁC PHẦN BỔ SUNG ---
+        function requestPushPermission() {
+            if (!("Notification" in window)) {
+                alert("Trình duyệt không hỗ trợ thông báo.");
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') alert("Đã cấp quyền thông báo!");
+            });
+        }
+
+        function triggerPushAlert(title, body) {
+            if (Notification.permission === 'granted') {
+                new Notification(title, { body: body });
+            }
+        }
+
         const statusBanner = document.getElementById('statusBanner');
         const speedVal = document.getElementById('speedVal');
         const gVal = document.getElementById('gVal');
@@ -136,11 +155,8 @@
         const aiLearnBtn = document.getElementById('aiLearnBtn');
         const bgAudio = document.getElementById('bgAudio');
 
-        let audioCtx = null;
         let lastSpeakTime = 0;
-        let speedLimit = 80; // Giới hạn tốc độ mặc định
-
-        // BIẾN THAM CHIẾU AI (MÔ HÌNH TỰ HỌC VỊ TRÍ TAPLO)
+        let speedLimit = 80;
         let basePitch = 0;
         let baseRoll = 0;
         let isAILearned = false;
@@ -152,162 +168,102 @@
 
         function aiSpeak(text) {
             const now = Date.now();
-            if (now - lastSpeakTime < 4000) return; // Khóa chống lặp ngôn ngữ dồn dập
+            if (now - lastSpeakTime < 4000) return;
             lastSpeakTime = now;
-
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 let utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'vi-VN';
-                utterance.rate = 1.0;
                 window.speechSynthesis.speak(utterance);
             }
         }
 
-        // THUẬT TOÁN AI: Tự học và cân bằng động góc đặt điện thoại ngẫu nhiên trên Taplo
         function triggerAILearning() {
             aiState.innerText = "Đang tính toán Vector...";
             aiSpeak("Bắt đầu chu trình AI tự học. Vui lòng giữ xe đứng yên trên mặt phẳng Taplo.");
-            
             setTimeout(() => {
-                // Đóng băng góc nghiêng hiện tại làm điểm Gốc 0,0 chuẩn cho xe
                 basePitch = currentRawPitch;
                 baseRoll = currentRawRoll;
                 isAILearned = true;
-                
                 aiLearnBtn.style.background = "var(--success)";
                 aiLearnBtn.innerText = "✓ AI ĐÃ ĐỒNG BỘ TAPLO";
                 aiState.innerText = "Đã tối ưu ma trận xoay";
-                aiSpeak("Thuật toán AI đã đồng bộ hóa góc Taplo thành công. Hệ thống hành trình đã cân bằng.");
+                aiSpeak("Thuật toán AI đã đồng bộ hóa góc Taplo thành công.");
             }, 3000);
         }
 
         function startCoreSystem() {
             enableBackgroundAudio();
-
-            // Kích hoạt Core Motion của iOS
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission().then(response => {
-                    if (response === 'granted') {
-                        startSensors();
-                    } else {
-                        alert("Cần cấp quyền cảm biến phần cứng!");
-                    }
-                }).catch(console.error);
+                    if (response === 'granted') startSensors();
+                    else alert("Cần cấp quyền cảm biến!");
+                });
             } else {
                 startSensors();
             }
-
-            // Kích hoạt Định vị Vệ tinh (GPS độ chính xác cao)
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition((position) => {
                     let speed = position.coords.speed;
                     if (speed !== null && speed >= 0) {
                         let kmh = Math.round(speed * 3.6);
                         speedVal.innerText = kmh + " km/h";
-
-                        // 1. CẢNH BÁO QUÁ VẬN TỐC TIẾNG VIỆT
                         if (kmh > speedLimit) {
-                            triggerAlert("🚨 QUÁ TỐC ĐỘ GIỚI HẠN", "Cảnh báo. Tốc độ vượt ngưỡng an toàn. Vui lòng giảm ga.", "danger");
+                            triggerAlert("🚨 QUÁ TỐC ĐỘ", "Tốc độ vượt ngưỡng an toàn.", "danger");
                         }
                     }
-                }, (err) => console.log(err), { enableHighAccuracy: true, maximumAge: 0 });
+                }, null, { enableHighAccuracy: true });
             }
-
             startBtn.style.background = "var(--success)";
             startBtn.innerText = "✓ HỆ THỐNG ONLINE";
-            statusBanner.innerText = "MỌI CHỈ SỐ BÌNH THƯỜNG";
-            aiSpeak("Hệ thống định vị vũ trụ iCar đã trực tuyến.");
         }
 
-        let currentRawPitch = 0;
-        let currentRawRoll = 0;
-
+        let currentRawPitch = 0, currentRawRoll = 0;
         function startSensors() {
-            // Đọc góc nghiêng trọng trường (Gia tốc kế tĩnh) để tính toán dốc và lật xe
             window.addEventListener('deviceorientation', (event) => {
-                // Lưu lại dữ liệu thô phục vụ AI tự học
-                currentRawPitch = event.beta ? event.beta : 0; // Trục dọc
-                currentRawRoll = event.gamma ? event.gamma : 0;  // Trục ngang
-
-                // Áp dụng bộ lọc ma trận AI sau khi đã calibrate tự học
+                currentRawPitch = event.beta || 0;
+                currentRawRoll = event.gamma || 0;
                 let calibratedPitch = currentRawPitch - basePitch;
                 let calibratedRoll = currentRawRoll - baseRoll;
-
                 pitchVal.innerText = calibratedPitch.toFixed(1) + "°";
                 rollVal.innerText = calibratedRoll.toFixed(1) + "°";
-
-                if (!isAILearned) return; // Nếu chưa học vị trí taplo thì chưa kích hoạt cảnh báo nghiêng dốc
-
-                // 2. CẢNH BÁO LÊN XUỐNG DỐC NGUY HIỂM
-                if (calibratedPitch > 18) {
-                    triggerAlert("⚠️ DỐC LÊN NGUY HIỂM", "Chú ý. Độ dốc lên quá cao. Hãy về số thấp.", "warning");
-                } else if (calibratedPitch < -18) {
-                    triggerAlert("⚠️ DỐC XUỐNG NGUY HIỂM", "Độ dốc xuống nguy hiểm. Hạn chế phanh liên tục.", "warning");
-                }
-
-                // 3. CẢNH BÁO NGUY CƠ LẬT XE (ROLL)
-                if (Math.abs(calibratedRoll) > 25) {
-                    triggerAlert("🚨 CẢNH BÁO LẬT XE", "Nguy hiểm. Xe đang nghiêng nghiêm trọng. Giảm tốc ngay lập tức.", "danger");
-                }
+                if (!isAILearned) return;
+                if (Math.abs(calibratedPitch) > 18) triggerAlert("⚠️ DỐC NGUY HIỂM", "Độ dốc quá cao.", "warning");
+                if (Math.abs(calibratedRoll) > 25) triggerAlert("🚨 LẬT XE", "Xe đang nghiêng nguy hiểm.", "danger");
             });
-
-            // Đọc biến động động lực học (Vòng quay + Lực va chạm động)
             window.addEventListener('devicemotion', (event) => {
                 let rotation = event.rotationRate;
                 if (rotation && rotation.alpha !== null) {
-                    let currentTurn = Math.round(rotation.alpha);
-                    turnVal.innerText = currentTurn + "°/s";
-
-                    // 4. CẢNH BÁO KHÚC CUA NGUY HIỂM
-                    if (Math.abs(currentTurn) > 65) {
-                        triggerAlert("⚠️ KHÚC CUA NGUY HIỂM", "Tốc độ ôm cua quá lớn. Giảm tốc để tránh trượt bánh.", "warning");
-                    }
+                    turnVal.innerText = Math.round(rotation.alpha) + "°/s";
+                    if (Math.abs(rotation.alpha) > 65) triggerAlert("⚠️ KHÚC CUA", "Tốc độ cua quá lớn.", "warning");
                 }
-
                 let accel = event.acceleration;
                 if (accel) {
-                    let x = accel.x ? accel.x : 0;
-                    let y = accel.y ? accel.y : 0;
-                    let z = accel.z ? accel.z : 0;
-
-                    let netForce = Math.sqrt(x*x + y*y + z*z);
+                    let netForce = Math.sqrt((accel.x||0)**2 + (accel.y||0)**2 + (accel.z||0)**2);
                     gVal.innerText = (netForce / 9.8).toFixed(2) + " G";
-
-                    // 5. CẢNH BÁO PHANH GẤP ĐỘT NGỘT & TAI NẠN
-                    if (netForce > 35) {
-                        triggerAlert("🚨 TAI NẠN KHẨN CẤP", "Phát hiện va chạm cực mạnh. Đang gửi tọa độ tới trạm cứu hộ tinh vân.", "danger");
-                    } else if (netForce > 9.5) {
-                        triggerAlert("⚠️ PHANH GẤP NGUY HIỂM", "Phát hiện phanh gấp đột ngột.", "warning");
-                    }
+                    if (netForce > 35) triggerAlert("🚨 TAI NẠN", "Phát hiện va chạm.", "danger");
                 }
             });
         }
 
-        let alertTimeout;
         function triggerAlert(msg, audioMsg, level) {
             statusBanner.innerText = msg;
             if (level === "danger") {
                 statusBanner.classList.add('danger-active');
+                triggerPushAlert("CẢNH BÁO KHẨN CẤP", msg);
             } else {
                 statusBanner.style.background = "var(--warning)";
             }
-            
             aiSpeak(audioMsg);
-
-            clearTimeout(alertTimeout);
-            alertTimeout = setTimeout(() => {
-                statusBanner.innerText = "MỌI CHỈ SỐ BÌNH THƯỜNG";
+            setTimeout(() => {
                 statusBanner.classList.remove('danger-active');
                 statusBanner.style.background = "var(--success)";
+                statusBanner.innerText = "MỌI CHỈ SỐ BÌNH THƯỜNG";
             }, 3500);
         }
 
-        // Đăng ký Service Worker ngầm bắt buộc cho PWA
         if ('serviceWorker' in navigator) {
-            const swCode = "self.addEventListener('fetch', function(e){});";
-            const blob = new Blob([swCode], {type: 'application/javascript'});
-            navigator.serviceWorker.register(URL.createObjectURL(blob));
+            navigator.serviceWorker.register(new Blob(["self.addEventListener('fetch', function(e){});"], {type: 'application/javascript'}));
         }
     </script>
 </body>
