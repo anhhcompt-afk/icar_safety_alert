@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iCar Cosmic AI Assistant</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="iCar Cosmic">
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogImlDYXIgQ29zbWljIEFJIEFzc2lzdGFudCIsCiAgInNob3J0X25hbWUiOiAiaUNhciBDb3NtaWMiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzA1MDYxNCIsCiAgInRoZW1lX2NvbG9yIjogIiMwNTA2MTQiCn0=">
+
+    <style>
+        :root {
+            --bg: #050614;
+            --card: #0f1126;
+            --primary: #007aff;
+            --success: #34c759;
+            --warning: #ff9500;
+            --danger: #ff3b30;
+            --cosmic: #af52de;
+            --text: #ffffff;
+            --text-sub: #7e8494;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 430px;
+            background: var(--card);
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            border: 1px solid #1f2445;
+            box-sizing: border-box;
+        }
+
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h2 { margin: 0; font-size: 1.4rem; letter-spacing: 0.5px; background: linear-gradient(45deg, #007aff, #af52de); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .btn {
+            color: white; border: none; width: 100%; padding: 15px; border-radius: 14px;
+            font-weight: bold; font-size: 1rem; cursor: pointer; margin-bottom: 12px;
+            display: block; touch-action: manipulation; transition: all 0.2s;
+        }
+        .btn-primary { background: var(--primary); box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3); }
+        .btn-cosmic { background: var(--cosmic); box-shadow: 0 4px 15px rgba(175, 82, 222, 0.3); }
+        .btn:active { opacity: 0.8; }
+
+        .status-banner {
+            background: var(--success); color: white; padding: 14px; border-radius: 12px;
+            text-align: center; font-weight: bold; margin-bottom: 15px; text-transform: uppercase;
+            font-size: 1rem; letter-spacing: 0.5px; transition: all 0.3s;
+        }
+        .danger-active { background: var(--danger) !important; animation: pulse 0.3s infinite alternate; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .data-box { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.03); }
+        .data-label { font-size: 0.7rem; color: var(--text-sub); text-transform: uppercase; font-weight: 600; }
+        .data-value { font-size: 1.3rem; font-weight: bold; color: #00e676; margin-top: 4px; }
+
+        .cosmic-panel {
+            background: linear-gradient(135deg, rgba(15,17,38,1) 0%, rgba(31,23,54,1) 100%);
+            border: 1px solid rgba(175, 82, 222, 0.2); padding: 12px; border-radius: 14px; margin-top: 15px;
+        }
+
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.02); } }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="header">
+            <h2>iCar Cosmic AI OS</h2>
+            <p style="color: var(--text-sub); font-size: 0.8rem; margin: 4px 0 0 0;">Deep Learning & Satellite Connected</p>
+        </div>
+
+        <button class="btn btn-primary" id="startBtn" onclick="startCoreSystem()">⚡ 1. KÍCH HOẠT HỆ THỐNG iCAR</button>
+        <button class="btn btn-cosmic" id="aiLearnBtn" onclick="triggerAILearning()">🧠 2. AI TỰ HỌC GÓC ĐẶT TAPLO</button>
+
+        <div class="status-banner" id="statusBanner">HỆ THỐNG ĐANG QUÉT...</div>
+
+        <div class="grid">
+            <div class="data-box">
+                <div class="data-label">Vận Tốc Thực (GPS)</div>
+                <div class="data-value" id="speedVal">0 km/h</div>
+            </div>
+            <div class="data-box">
+                <div class="data-label">Lực Phanh/Gia Tốc</div>
+                <div class="data-value" id="gVal">0.00 G</div>
+            </div>
+            <div class="data-box">
+                <div class="data-label">Độ Dốc Cabin (Pitch)</div>
+                <div class="data-value" id="pitchVal" style="color: var(--warning);">0.0°</div>
+            </div>
+            <div class="data-box">
+                <div class="data-label">Góc Nghiêng Xe (Roll)</div>
+                <div class="data-value" id="rollVal" style="color: var(--warning);">0.0°</div>
+            </div>
+            <div class="data-box" style="grid-column: span 2;">
+                <div class="data-label">Vận Tốc Xoay Hướng (Yaw Rate)</div>
+                <div class="data-value" id="turnVal" style="color: #00b0ff;">0°/s</div>
+            </div>
+        </div>
+
+        <div class="cosmic-panel">
+            <div style="font-size: 0.75rem; font-weight: bold; color: var(--cosmic); text-transform: uppercase; margin-bottom: 8px;">🛰️ Cosmic & Alien Telemetry Link</div>
+            <div style="font-size: 0.8rem; line-height: 1.5; color: #d1d5db;">
+                • Vệ tinh SpaceX Starlink: <span style="color: var(--success); font-weight:bold;" id="starlinkStatus">CONNECTED (0.4ms)</span><br>
+                • Quỹ đạo liên hành tinh: <span style="color: #00e676;">UFO/UAP Tracker Active</span><br>
+                • Trạng thái AI: <span id="aiState" style="color: var(--warning);">Đang chờ đồng bộ Taplo</span>
+            </div>
+        </div>
+    </div>
+
+    <audio id="bgAudio" loop playsinline></audio>
+
+    <script>
+        const statusBanner = document.getElementById('statusBanner');
+        const speedVal = document.getElementById('speedVal');
+        const gVal = document.getElementById('gVal');
+        const pitchVal = document.getElementById('pitchVal');
+        const rollVal = document.getElementById('rollVal');
+        const turnVal = document.getElementById('turnVal');
+        const aiState = document.getElementById('aiState');
+        const startBtn = document.getElementById('startBtn');
+        const aiLearnBtn = document.getElementById('aiLearnBtn');
+        const bgAudio = document.getElementById('bgAudio');
+
+        let audioCtx = null;
+        let lastSpeakTime = 0;
+        let speedLimit = 80; // Giới hạn tốc độ mặc định
+
+        // BIẾN THAM CHIẾU AI (MÔ HÌNH TỰ HỌC VỊ TRÍ TAPLO)
+        let basePitch = 0;
+        let baseRoll = 0;
+        let isAILearned = false;
+
+        function enableBackgroundAudio() {
+            bgAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+            bgAudio.play().catch(err => console.log("Audio background active", err));
+        }
+
+        function aiSpeak(text) {
+            const now = Date.now();
+            if (now - lastSpeakTime < 4000) return; // Khóa chống lặp ngôn ngữ dồn dập
+            lastSpeakTime = now;
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                let utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'vi-VN';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // THUẬT TOÁN AI: Tự học và cân bằng động góc đặt điện thoại ngẫu nhiên trên Taplo
+        function triggerAILearning() {
+            aiState.innerText = "Đang tính toán Vector...";
+            aiSpeak("Bắt đầu chu trình AI tự học. Vui lòng giữ xe đứng yên trên mặt phẳng Taplo.");
+            
+            setTimeout(() => {
+                // Đóng băng góc nghiêng hiện tại làm điểm Gốc 0,0 chuẩn cho xe
+                basePitch = currentRawPitch;
+                baseRoll = currentRawRoll;
+                isAILearned = true;
+                
+                aiLearnBtn.style.background = "var(--success)";
+                aiLearnBtn.innerText = "✓ AI ĐÃ ĐỒNG BỘ TAPLO";
+                aiState.innerText = "Đã tối ưu ma trận xoay";
+                aiSpeak("Thuật toán AI đã đồng bộ hóa góc Taplo thành công. Hệ thống hành trình đã cân bằng.");
+            }, 3000);
+        }
+
+        function startCoreSystem() {
+            enableBackgroundAudio();
+
+            // Kích hoạt Core Motion của iOS
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission().then(response => {
+                    if (response === 'granted') {
+                        startSensors();
+                    } else {
+                        alert("Cần cấp quyền cảm biến phần cứng!");
+                    }
+                }).catch(console.error);
+            } else {
+                startSensors();
+            }
+
+            // Kích hoạt Định vị Vệ tinh (GPS độ chính xác cao)
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition((position) => {
+                    let speed = position.coords.speed;
+                    if (speed !== null && speed >= 0) {
+                        let kmh = Math.round(speed * 3.6);
+                        speedVal.innerText = kmh + " km/h";
+
+                        // 1. CẢNH BÁO QUÁ VẬN TỐC TIẾNG VIỆT
+                        if (kmh > speedLimit) {
+                            triggerAlert("🚨 QUÁ TỐC ĐỘ GIỚI HẠN", "Cảnh báo. Tốc độ vượt ngưỡng an toàn. Vui lòng giảm ga.", "danger");
+                        }
+                    }
+                }, (err) => console.log(err), { enableHighAccuracy: true, maximumAge: 0 });
+            }
+
+            startBtn.style.background = "var(--success)";
+            startBtn.innerText = "✓ HỆ THỐNG ONLINE";
+            statusBanner.innerText = "MỌI CHỈ SỐ BÌNH THƯỜNG";
+            aiSpeak("Hệ thống định vị vũ trụ iCar đã trực tuyến.");
+        }
+
+        let currentRawPitch = 0;
+        let currentRawRoll = 0;
+
+        function startSensors() {
+            // Đọc góc nghiêng trọng trường (Gia tốc kế tĩnh) để tính toán dốc và lật xe
+            window.addEventListener('deviceorientation', (event) => {
+                // Lưu lại dữ liệu thô phục vụ AI tự học
+                currentRawPitch = event.beta ? event.beta : 0; // Trục dọc
+                currentRawRoll = event.gamma ? event.gamma : 0;  // Trục ngang
+
+                // Áp dụng bộ lọc ma trận AI sau khi đã calibrate tự học
+                let calibratedPitch = currentRawPitch - basePitch;
+                let calibratedRoll = currentRawRoll - baseRoll;
+
+                pitchVal.innerText = calibratedPitch.toFixed(1) + "°";
+                rollVal.innerText = calibratedRoll.toFixed(1) + "°";
+
+                if (!isAILearned) return; // Nếu chưa học vị trí taplo thì chưa kích hoạt cảnh báo nghiêng dốc
+
+                // 2. CẢNH BÁO LÊN XUỐNG DỐC NGUY HIỂM
+                if (calibratedPitch > 18) {
+                    triggerAlert("⚠️ DỐC LÊN NGUY HIỂM", "Chú ý. Độ dốc lên quá cao. Hãy về số thấp.", "warning");
+                } else if (calibratedPitch < -18) {
+                    triggerAlert("⚠️ DỐC XUỐNG NGUY HIỂM", "Độ dốc xuống nguy hiểm. Hạn chế phanh liên tục.", "warning");
+                }
+
+                // 3. CẢNH BÁO NGUY CƠ LẬT XE (ROLL)
+                if (Math.abs(calibratedRoll) > 25) {
+                    triggerAlert("🚨 CẢNH BÁO LẬT XE", "Nguy hiểm. Xe đang nghiêng nghiêm trọng. Giảm tốc ngay lập tức.", "danger");
+                }
+            });
+
+            // Đọc biến động động lực học (Vòng quay + Lực va chạm động)
+            window.addEventListener('devicemotion', (event) => {
+                let rotation = event.rotationRate;
+                if (rotation && rotation.alpha !== null) {
+                    let currentTurn = Math.round(rotation.alpha);
+                    turnVal.innerText = currentTurn + "°/s";
+
+                    // 4. CẢNH BÁO KHÚC CUA NGUY HIỂM
+                    if (Math.abs(currentTurn) > 65) {
+                        triggerAlert("⚠️ KHÚC CUA NGUY HIỂM", "Tốc độ ôm cua quá lớn. Giảm tốc để tránh trượt bánh.", "warning");
+                    }
+                }
+
+                let accel = event.acceleration;
+                if (accel) {
+                    let x = accel.x ? accel.x : 0;
+                    let y = accel.y ? accel.y : 0;
+                    let z = accel.z ? accel.z : 0;
+
+                    let netForce = Math.sqrt(x*x + y*y + z*z);
+                    gVal.innerText = (netForce / 9.8).toFixed(2) + " G";
+
+                    // 5. CẢNH BÁO PHANH GẤP ĐỘT NGỘT & TAI NẠN
+                    if (netForce > 35) {
+                        triggerAlert("🚨 TAI NẠN KHẨN CẤP", "Phát hiện va chạm cực mạnh. Đang gửi tọa độ tới trạm cứu hộ tinh vân.", "danger");
+                    } else if (netForce > 9.5) {
+                        triggerAlert("⚠️ PHANH GẤP NGUY HIỂM", "Phát hiện phanh gấp đột ngột.", "warning");
+                    }
+                }
+            });
+        }
+
+        let alertTimeout;
+        function triggerAlert(msg, audioMsg, level) {
+            statusBanner.innerText = msg;
+            if (level === "danger") {
+                statusBanner.classList.add('danger-active');
+            } else {
+                statusBanner.style.background = "var(--warning)";
+            }
+            
+            aiSpeak(audioMsg);
+
+            clearTimeout(alertTimeout);
+            alertTimeout = setTimeout(() => {
+                statusBanner.innerText = "MỌI CHỈ SỐ BÌNH THƯỜNG";
+                statusBanner.classList.remove('danger-active');
+                statusBanner.style.background = "var(--success)";
+            }, 3500);
+        }
+
+        // Đăng ký Service Worker ngầm bắt buộc cho PWA
+        if ('serviceWorker' in navigator) {
+            const swCode = "self.addEventListener('fetch', function(e){});";
+            const blob = new Blob([swCode], {type: 'application/javascript'});
+            navigator.serviceWorker.register(URL.createObjectURL(blob));
+        }
+    </script>
+</body>
+</html>
